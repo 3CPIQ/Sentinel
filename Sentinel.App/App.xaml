@@ -1,0 +1,23 @@
+<Application x:Class="Sentinel.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+  <Application.Resources>
+    <SolidColorBrush x:Key="Ink" Color="#203750"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#9CB7CE"/>
+    <LinearGradientBrush x:Key="ChromeBrush" StartPoint="0,0" EndPoint="0,1">
+      <GradientStop Color="#F5FBFF" Offset="0"/>
+      <GradientStop Color="#D7EAF7" Offset=".45"/>
+      <GradientStop Color="#A5CBE5" Offset="1"/>
+    </LinearGradientBrush>
+    <Style TargetType="Button">
+      <Setter Property="Padding" Value="14,7"/>
+      <Setter Property="Margin" Value="0,0,8,0"/>
+      <Setter Property="Foreground" Value="#16324F"/>
+      <Setter Property="Background" Value="{StaticResource ChromeBrush}"/>
+      <Setter Property="BorderBrush" Value="#779FBD"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+  </Application.Resources>
+</Application>
