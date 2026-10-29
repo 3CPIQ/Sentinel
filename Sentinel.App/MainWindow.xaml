@@ -1,0 +1,77 @@
+<Window x:Class="Sentinel.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Sentinel Security Center" Width="1050" Height="690" MinWidth="800" MinHeight="520"
+        WindowStartupLocation="CenterScreen" Background="#E7F1F8" FontFamily="Segoe UI">
+  <Window.Resources>
+    <Style x:Key="SideButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="HorizontalContentAlignment" Value="Left"/>
+      <Setter Property="Margin" Value="8,3"/>
+      <Setter Property="Padding" Value="14,11"/>
+    </Style>
+  </Window.Resources>
+  <Border BorderBrush="#7299BB" BorderThickness="1">
+    <DockPanel>
+      <Border DockPanel.Dock="Top" Background="{StaticResource ChromeBrush}" BorderBrush="#84A9C4" BorderThickness="0,0,0,1" Padding="22,18">
+        <StackPanel>
+          <TextBlock Text="✦  SENTINEL" FontSize="26" FontWeight="Bold" Foreground="#183B5B"/>
+          <TextBlock Text="Security Center  •  Windows investigation toolkit" Foreground="#446781" FontSize="12" Margin="3,3,0,0"/>
+        </StackPanel>
+      </Border>
+      <Border DockPanel.Dock="Bottom" Background="#D4E6F3" BorderBrush="#92B1C9" BorderThickness="0,1,0,0" Padding="12,7">
+        <TextBlock x:Name="StatusText" Text="Ready  •  Read-only mode  •  No real-time protection" Foreground="#284D6A" FontSize="12"/>
+      </Border>
+      <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="205"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <Border Grid.Column="0" Background="#D9EAF5" BorderBrush="#B0C9DC" BorderThickness="0,0,1,0">
+          <StackPanel Margin="0,16,0,0">
+            <TextBlock Text="NAVIGATION" Margin="20,0,0,9" FontSize="11" FontWeight="Bold" Foreground="#5A7790"/>
+            <Button Style="{StaticResource SideButton}" Content="⌂   Dashboard" Click="Dashboard_Click"/>
+            <Button Style="{StaticResource SideButton}" Content="⌕   Scan Results" Click="Results_Click"/>
+            <Button Style="{StaticResource SideButton}" Content="▤   Export Report" Click="Export_Click"/>
+            <Separator Margin="12,16"/>
+            <TextBlock Text="Sentinel v0.2 preview" Margin="18,0" Foreground="#658097" FontSize="11"/>
+            <TextBlock Text="No automatic cleanup" Margin="18,4" Foreground="#658097" FontSize="11"/>
+          </StackPanel>
+        </Border>
+        <Grid Grid.Column="1" Margin="23,19,24,20">
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <StackPanel Grid.Row="0">
+            <TextBlock x:Name="PageTitle" Text="Security Overview" FontSize="23" FontWeight="SemiBold" Foreground="#1A3854"/>
+            <TextBlock Text="Inspect your system without modifying files or settings." Margin="0,5,0,16" Foreground="#56738B"/>
+          </StackPanel>
+          <Border Grid.Row="1" CornerRadius="7" BorderBrush="#9CB7CE" BorderThickness="1" Background="White" Padding="17" Margin="0,0,0,17">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                <Button x:Name="ScanButton" Content="▶  Start Scan" Click="Scan_Click"/>
+                <Button Content="Save JSON Report" Click="Export_Click"/>
+              </StackPanel>
+              <StackPanel>
+                <TextBlock Text="System investigation" FontSize="17" FontWeight="SemiBold" Foreground="#244A68"/>
+                <TextBlock x:Name="SummaryText" Text="No scan yet. Start to inspect running processes and startup items." Margin="0,6,0,0" TextWrapping="Wrap" Foreground="#5B7185"/>
+              </StackPanel>
+            </DockPanel>
+          </Border>
+          <Border Grid.Row="2" Background="White" BorderBrush="#9CB7CE" BorderThickness="1" CornerRadius="7">
+            <DockPanel>
+              <Border DockPanel.Dock="Top" Background="#ECF5FB" Padding="13,10" BorderBrush="#B9D0E1" BorderThickness="0,0,0,1">
+                <TextBlock Text="Observations  •  No threat classification yet" FontWeight="SemiBold" Foreground="#254966"/>
+              </Border>
+              <DataGrid x:Name="ResultsGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                        Background="White" BorderThickness="0" GridLinesVisibility="Horizontal"
+                        AlternatingRowBackground="#F1F7FC" HeadersVisibility="Column" SelectionMode="Single">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="1.2*"/>
+                  <DataGridTextColumn Header="Type" Binding="{Binding Category}" Width="85"/>
+                  <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="85"/>
+                  <DataGridTextColumn Header="Path / Command" Binding="{Binding Path}" Width="2.7*"/>
+                  <DataGridTextColumn Header="Evidence" Binding="{Binding Evidence}" Width="1.5*"/>
+                </DataGrid.Columns>
+              </DataGrid>
+            </DockPanel>
+          </Border>
+        </Grid>
+      </Grid>
+    </DockPanel>
+  </Border>
+</Window>
