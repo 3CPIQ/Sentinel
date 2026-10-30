@@ -1,0 +1,25 @@
+name: Build Sentinel Windows EXE
+on:
+  workflow_dispatch:
+  push:
+    branches: [ui/native-windows]
+    paths:
+      - 'Sentinel.Desktop/**'
+      - '.github/workflows/build-windows.yml'
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Publish standalone Windows executable
+        shell: pwsh
+        run: dotnet publish Sentinel.Desktop/Sentinel.Desktop.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -o publish
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sentinel-Windows-x64
+          path: publish/Sentinel.Desktop.exe
+          if-no-files-found: error
