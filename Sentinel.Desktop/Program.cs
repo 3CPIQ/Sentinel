@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
+using Microsoft.Win32;
 using System.Text.Json;
 using System.Drawing;
 using System.Windows.Forms;
@@ -21,7 +23,7 @@ internal sealed class SentinelWindow : Form
     private readonly Button openButton = new() { Text = "Open report folder", AutoSize = true };
     private readonly Label status = new() { Text = "Ready to inspect this PC.", AutoSize = true };
     private readonly ListView findings = new() { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true };
-    private readonly string reportPath = Path.Combine(AppContext.BaseDirectory, "sentinel-report.json");
+    private readonly string reportPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Sentinel", "sentinel-report.json");
 
     public SentinelWindow()
     {
@@ -79,37 +81,58 @@ internal sealed class SentinelWindow : Form
         findings.Items.Clear();
         try
         {
-            // Reuse the existing read-only CLI rather than inventing antivirus capabilities.
-            var cli = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Sentinel.Cli", "Sentinel.Cli.csproj"));
-            if (!File.Exists(cli))
-                throw new FileNotFoundException("Sentinel.Cli project was not found. Run the desktop app from the repository's source checkout.", cli);
-
-            var start = new ProcessStartInfo("dotnet")
+            var entries = await Task.Run(() =>
             {
-                WorkingDirectory = AppContext.BaseDirectory,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            start.ArgumentList.Add("run");
-            start.ArgumentList.Add("--project");
-            start.ArgumentList.Add(cli);
-            using var process = Process.Start(start) ?? throw new InvalidOperationException("Could not start the inspector.");
-            var outputTask = process.StandardOutput.ReadToEndAsync();
-            var errorTask = process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
-            var error = await errorTask;
-            _ = await outputTask;
-            if (process.ExitCode != 0) throw new InvalidOperationException(error);
-            if (!File.Exists(reportPath)) throw new FileNotFoundException("Report was not generated.");
-
-            using var document = JsonDocument.Parse(await File.ReadAllTextAsync(reportPath));
-            foreach (var finding in document.RootElement.GetProperty("Findings").EnumerateArray())
+                var results = new List<Observation>();
+                void AddFile(string path, string source)
+                {
+                    try
+                    {
+                        var info = new FileInfo(path);
+                        if (!info.Exists) return;
+                        using var stream = info.OpenRead();
+                        var hash = Convert.ToHexString(SHA256.HashData(stream));
+                        results.Add(new Observation(source, info.FullName, hash));
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) { }
+                }
+                foreach (var process in Process.GetProcesses())
+                {
+                    try
+                    {
+                        var path = process.MainModule?.FileName;
+                        if (path is not null) AddFile(path, $"Process (PID {process.Id})");
+                    }
+                    catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or UnauthorizedAccessException) { }
+                    finally { process.Dispose(); }
+                }
+                void ReadStartup(RegistryKey root)
+                {
+                    try
+                    {
+                        using var key = root.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
+                        if (key is null) return;
+                        foreach (var name in key.GetValueNames())
+                            results.Add(new Observation($"Startup: {name}", key.GetValue(name)?.ToString() ?? "", null));
+                    }
+                    catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or IOException) { }
+                }
+                ReadStartup(Registry.CurrentUser);
+                ReadStartup(Registry.LocalMachine);
+                return results;
+            });
+            Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
+            await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(new
             {
-                var item = new ListViewItem(finding.GetProperty("Source").GetString() ?? "");
-                item.SubItems.Add(finding.GetProperty("PathOrCommand").GetString() ?? "");
-                item.SubItems.Add(finding.GetProperty("Sha256").ValueKind == JsonValueKind.String ? finding.GetProperty("Sha256").GetString() ?? "" : "");
+                Version = "0.1.0",
+                ScannedAtUtc = DateTimeOffset.UtcNow,
+                Findings = entries.Select(x => new { x.Source, PathOrCommand = x.Path, x.Sha256 })
+            }, new JsonSerializerOptions { WriteIndented = true }));
+            foreach (var entry in entries)
+            {
+                var item = new ListViewItem(entry.Source);
+                item.SubItems.Add(entry.Path);
+                item.SubItems.Add(entry.Sha256 ?? "");
                 findings.Items.Add(item);
             }
             status.Text = $"Inspection finished. {findings.Items.Count} observations. Select the Findings tab to review.";
@@ -122,3 +145,5 @@ internal sealed class SentinelWindow : Form
         finally { scanButton.Enabled = true; }
     }
 }
+
+internal sealed record Observation(string Source, string Path, string? Sha256);
